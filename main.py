@@ -6,19 +6,17 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 
-from fastapi import FastAPI
 from models.models import Base
 from db.database import engine
 
+# ✅ FastAPIアプリ初期化（ここだけ！）
 app = FastAPI()
 
-# すでに app = FastAPI() がある場合はそのままでOK
-
+# ✅ テーブル作成用のルート（1回だけアクセス）
 @app.get("/init-db")
 def init_db_route():
     Base.metadata.create_all(bind=engine)
     return {"message": "✅ テーブル作成完了"}
-
 
 # ✅ .envの読み込み
 env_path = Path('.') / '.env'
@@ -32,42 +30,36 @@ if not api_key:
 # ✅ OpenAIクライアントを初期化（新方式）
 client = OpenAI(api_key=api_key)
 
-# ✅ FastAPIアプリ初期化
-app = FastAPI()
-
-# ✅ CORSミドルウェア（Unityなど外部アクセスを許可）
+# ✅ CORSミドルウェア
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 本番環境ではドメイン制限を推奨
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ✅ 会話履歴を保存（簡易版）
+# ✅ 会話履歴
 chat_history = []
 
-# ✅ リクエスト用のデータ構造
+# ✅ Pydanticモデル
 class MessageData(BaseModel):
     message: str
 
-# ✅ エンドポイント
+# ✅ チャットエンドポイント
 @app.post("/chat")
 async def chat(data: MessageData):
-    # 会話履歴に追加
     chat_history.append({"role": "user", "content": data.message})
 
-    # システムプロンプト
     system_prompt = {
         "role": "system",
         "content": "あなたは静かな村に住む親切な魔法使いです。旅人に丁寧に応対し、時に謎めいたヒントを与えます。"
     }
 
     try:
-        # GPT-4 Turboへ問い合わせ
         response = client.chat.completions.create(
             model="gpt-4-turbo",
-            messages=[system_prompt] + chat_history[-10:],  # 直近10件を送信
+            messages=[system_prompt] + chat_history[-10:],
             temperature=0.8,
             max_tokens=200
         )
@@ -76,6 +68,5 @@ async def chat(data: MessageData):
         print("❌ GPT API エラー:", e)
         return {"reply": f"エラーが発生しました: {str(e)}"}
 
-    # 応答も履歴に追加
     chat_history.append({"role": "assistant", "content": reply})
     return {"reply": reply}
