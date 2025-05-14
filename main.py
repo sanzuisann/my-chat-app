@@ -6,6 +6,20 @@ from dotenv import load_dotenv
 from pathlib import Path
 import os
 
+from fastapi import FastAPI
+from models.models import Base
+from db.database import engine
+
+app = FastAPI()
+
+# すでに app = FastAPI() がある場合はそのままでOK
+
+@app.get("/init-db")
+def init_db_route():
+    Base.metadata.create_all(bind=engine)
+    return {"message": "✅ テーブル作成完了"}
+
+
 # ✅ .envの読み込み
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
