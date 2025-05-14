@@ -12,12 +12,6 @@ from db.database import engine
 # ✅ FastAPIアプリ初期化（ここだけ！）
 app = FastAPI()
 
-# ✅ テーブル作成用のルート（1回だけアクセス）
-@app.get("/init-db")
-def init_db_route():
-    Base.metadata.create_all(bind=engine)
-    return {"message": "✅ テーブル作成完了"}
-
 # ✅ .envの読み込み
 env_path = Path('.') / '.env'
 load_dotenv(dotenv_path=env_path)
