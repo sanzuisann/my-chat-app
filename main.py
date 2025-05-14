@@ -70,3 +70,6 @@ async def chat(data: MessageData):
 
     chat_history.append({"role": "assistant", "content": reply})
     return {"reply": reply}
+@app.get("/")
+def root():
+    return {"message": "アプリは動作中です"}
