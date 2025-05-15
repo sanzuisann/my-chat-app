@@ -10,11 +10,11 @@ import os
 
 from models.models import Base
 from db.database import engine
-from schemas.schemas import CharacterResponse
-from crud.crud import get_all_characters
+from schemas.schemas import CharacterCreate, CharacterResponse  # ✅ CharacterCreate を追加
+from crud.crud import get_all_characters, create_character, get_character_by_name  # ✅ 2つ追加
 from dependencies.dependencies import get_db
 
-# ✅ FastAPIアプリ初期化（ここだけ！）
+# ✅ FastAPIアプリ初期化
 app = FastAPI()
 
 # ✅ .envの読み込み
@@ -69,6 +69,14 @@ async def chat(data: MessageData):
 
     chat_history.append({"role": "assistant", "content": reply})
     return {"reply": reply}
+
+# ✅ キャラクター登録エンドポイント ← ★ここを追加！
+@app.post("/characters/", response_model=CharacterResponse)
+def create_character_route(character: CharacterCreate, db: Session = Depends(get_db)):
+    db_character = get_character_by_name(db, character.name)
+    if db_character:
+        raise HTTPException(status_code=400, detail="❌ 名前が既に使われています")
+    return create_character(db, character)
 
 # ✅ キャラクター一覧取得エンドポイント
 @app.get("/characters/", response_model=List[CharacterResponse])
