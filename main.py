@@ -1,13 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
 from pathlib import Path
+from sqlalchemy.orm import Session
+from typing import List
 import os
 
 from models.models import Base
 from db.database import engine
+from schemas.schemas import CharacterResponse
+from crud.crud import get_all_characters
+from dependencies.dependencies import get_db
 
 # ✅ FastAPIアプリ初期化（ここだけ！）
 app = FastAPI()
@@ -64,6 +69,13 @@ async def chat(data: MessageData):
 
     chat_history.append({"role": "assistant", "content": reply})
     return {"reply": reply}
+
+# ✅ キャラクター一覧取得エンドポイント
+@app.get("/characters/", response_model=List[CharacterResponse])
+def get_characters_route(db: Session = Depends(get_db)):
+    characters = get_all_characters(db)
+    return characters
+
 @app.get("/")
 def root():
     return {"message": "アプリは動作中です"}
