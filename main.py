@@ -107,6 +107,17 @@ def get_characters_route(db: Session = Depends(get_db)):
     characters = get_all_characters(db)
     return characters
 
+# ✅ キャラクター削除エンドポイント
+@app.delete("/characters/{name}")
+def delete_character_route(name: str, db: Session = Depends(get_db)):
+    character = db.query(Character).filter(Character.name == name).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
+
+    db.delete(character)
+    db.commit()
+    return {"message": f"キャラクター「{name}」を削除しました"}
+
 @app.get("/")
 def root():
     return {"message": "アプリは動作中です"}
