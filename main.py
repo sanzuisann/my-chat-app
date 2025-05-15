@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 from sqlalchemy.orm import Session
 from typing import List
+from schemas.schemas import CharacterUpdate
+from models.models import Character
 import os
 
 from models.models import Base
@@ -77,6 +79,27 @@ def create_character_route(character: CharacterCreate, db: Session = Depends(get
     if db_character:
         raise HTTPException(status_code=400, detail="❌ 名前が既に使われています")
     return create_character(db, character)
+
+# ✅ キャラクター情報更新エンドポイント
+@app.put("/characters/{name}", response_model=CharacterResponse)
+def update_character_route(
+    name: str,
+    update_data: CharacterUpdate,
+    db: Session = Depends(get_db)
+):
+    character = db.query(Character).filter(Character.name == name).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
+
+    if update_data.personality is not None:
+        character.personality = update_data.personality
+    if update_data.system_prompt is not None:
+        character.system_prompt = update_data.system_prompt
+
+    db.commit()
+    db.refresh(character)
+
+    return character
 
 # ✅ キャラクター一覧取得エンドポイント
 @app.get("/characters/", response_model=List[CharacterResponse])

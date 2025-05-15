@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 # 🔸 登録リクエスト用
 class CharacterCreate(BaseModel):
@@ -14,4 +15,10 @@ class CharacterResponse(BaseModel):
     system_prompt: str
 
     class Config:
-        from_attributes = True  # ✅ Pydantic v2で必要な設定（旧：orm_mode）
+        from_attributes = True  # ※ Pydantic v2 で必要
+
+# 🛠️ 更新リクエスト用
+class CharacterUpdate(BaseModel):
+    personality: Optional[str] = None
+    system_prompt: Optional[str] = None
+
