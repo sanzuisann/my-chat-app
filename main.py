@@ -12,8 +12,8 @@ import os
 
 from models.models import Base
 from db.database import engine
-from schemas.schemas import CharacterCreate, CharacterResponse  # ✅ CharacterCreate を追加
-from crud.crud import get_all_characters, create_character, get_character_by_name  # ✅ 2つ追加
+from schemas.schemas import CharacterCreate, CharacterResponse
+from crud.crud import get_all_characters, create_character, get_character_by_name
 from dependencies.dependencies import get_db
 
 # ✅ FastAPIアプリ初期化
@@ -72,7 +72,7 @@ async def chat(data: MessageData):
     chat_history.append({"role": "assistant", "content": reply})
     return {"reply": reply}
 
-# ✅ キャラクター登録エンドポイント ← ★ここを追加！
+# ✅ キャラクター登録エンドポイント
 @app.post("/characters/", response_model=CharacterResponse)
 def create_character_route(character: CharacterCreate, db: Session = Depends(get_db)):
     db_character = get_character_by_name(db, character.name)
@@ -107,17 +107,18 @@ def get_characters_route(db: Session = Depends(get_db)):
     characters = get_all_characters(db)
     return characters
 
-# ✅ キャラクター削除エンドポイント
-@app.delete("/characters/{name}")
-def delete_character_route(name: str, db: Session = Depends(get_db)):
-    character = db.query(Character).filter(Character.name == name).first()
+# ✅ キャラクター削除エンドポイント（ID指定）
+@app.delete("/characters/{id}")
+def delete_character_route(id: int, db: Session = Depends(get_db)):
+    character = db.query(Character).filter(Character.id == id).first()
     if not character:
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
 
     db.delete(character)
     db.commit()
-    return {"message": f"キャラクター「{name}」を削除しました"}
+    return {"message": f"キャラクター（ID: {id}）を削除しました"}
 
+# ✅ 動作確認用ルート
 @app.get("/")
 def root():
     return {"message": "アプリは動作中です"}
