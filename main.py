@@ -6,13 +6,16 @@ from dotenv import load_dotenv
 from pathlib import Path
 from sqlalchemy.orm import Session
 from typing import List
-from schemas.schemas import CharacterUpdate
-from models.models import Character
+from datetime import datetime
 import os
 
-from models.models import Base
+# ✅ 自作モジュール
+from models.models import Base, Character, ChatHistory
 from db.database import engine
-from schemas.schemas import CharacterCreate, CharacterResponse
+from schemas.schemas import (
+    CharacterCreate, CharacterResponse, CharacterUpdate,
+    ChatMessage, ChatHistoryResponse
+)
 from crud.crud import get_all_characters, create_character, get_character_by_name
 from dependencies.dependencies import get_db
 
@@ -40,14 +43,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ 会話履歴
+# ✅ 会話履歴（テスト用の一時保存）
 chat_history = []
 
-# ✅ Pydanticモデル
+# ✅ Pydanticモデル（GPT用）
 class MessageData(BaseModel):
     message: str
 
-# ✅ チャットエンドポイント
+# ✅ チャット応答エンドポイント（OpenAI + ローカル履歴利用）
 @app.post("/chat")
 async def chat(data: MessageData):
     chat_history.append({"role": "user", "content": data.message})
@@ -72,6 +75,28 @@ async def chat(data: MessageData):
     chat_history.append({"role": "assistant", "content": reply})
     return {"reply": reply}
 
+# ✅ 会話履歴保存エンドポイント
+@app.post("/history/")
+def save_chat_message(chat: ChatMessage, db: Session = Depends(get_db)):
+    new_message = ChatHistory(
+        user_id=chat.user_id,
+        character_id=chat.character_id,
+        role=chat.role,
+        message=chat.message
+    )
+    db.add(new_message)
+    db.commit()
+    return {"status": "success"}
+
+# ✅ 会話履歴取得エンドポイント
+@app.get("/history/{user_id}/{character_id}", response_model=List[ChatHistoryResponse])
+def get_chat_history(user_id: int, character_id: int, db: Session = Depends(get_db)):
+    history = db.query(ChatHistory)\
+        .filter(ChatHistory.user_id == user_id, ChatHistory.character_id == character_id)\
+        .order_by(ChatHistory.timestamp)\
+        .all()
+    return history
+
 # ✅ キャラクター登録エンドポイント
 @app.post("/characters/", response_model=CharacterResponse)
 def create_character_route(character: CharacterCreate, db: Session = Depends(get_db)):
@@ -80,7 +105,7 @@ def create_character_route(character: CharacterCreate, db: Session = Depends(get
         raise HTTPException(status_code=400, detail="❌ 名前が既に使われています")
     return create_character(db, character)
 
-# ✅ キャラクター情報更新エンドポイント
+# ✅ キャラクター更新エンドポイント
 @app.put("/characters/{name}", response_model=CharacterResponse)
 def update_character_route(
     name: str,
@@ -98,7 +123,6 @@ def update_character_route(
 
     db.commit()
     db.refresh(character)
-
     return character
 
 # ✅ キャラクター一覧取得エンドポイント
@@ -107,7 +131,7 @@ def get_characters_route(db: Session = Depends(get_db)):
     characters = get_all_characters(db)
     return characters
 
-# ✅ キャラクター削除エンドポイント（ID指定）
+# ✅ キャラクター削除エンドポイント
 @app.delete("/characters/{id}")
 def delete_character_route(id: int, db: Session = Depends(get_db)):
     character = db.query(Character).filter(Character.id == id).first()
