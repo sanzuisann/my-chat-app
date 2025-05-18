@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Literal
+from uuid import UUID
 from datetime import datetime
 
 # 🔸 登録リクエスト用
@@ -8,31 +9,31 @@ class CharacterCreate(BaseModel):
     personality: str
     system_prompt: str
 
-# 🔹 取得レスポンス用
+# 🔹 取得レスポンス用（UUID対応）
 class CharacterResponse(BaseModel):
-    id: int
+    id: UUID
     name: str
     personality: str
     system_prompt: str
 
     class Config:
-        from_attributes = True  # ※ Pydantic v2 で必要
+        from_attributes = True
 
 # 🛠️ 更新リクエスト用
 class CharacterUpdate(BaseModel):
     personality: Optional[str] = None
     system_prompt: Optional[str] = None
 
-# 🔸 チャットリクエスト用
+# 🔸 チャットリクエスト用（UUID）
 class ChatRequest(BaseModel):
-    user_id: str
-    character_id: str
+    user_id: UUID
+    character_id: UUID
     user_message: str
 
-# 🔸 会話保存リクエスト用
+# 🔸 会話保存リクエスト用（UUIDに変更）
 class ChatMessage(BaseModel):
-    user_id: int
-    character_id: int
+    user_id: UUID
+    character_id: UUID
     role: Literal["user", "assistant"]
     message: str
 
