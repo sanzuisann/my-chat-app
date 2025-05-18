@@ -45,3 +45,9 @@ class ChatHistoryResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# 🔸 ユーザー登録リクエスト用スキーマ
+# クライアントがユーザー名を送信して新規ユーザーを作成する際に使用
+
+class UserCreate(BaseModel):
+    username: str

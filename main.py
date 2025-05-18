@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from uuid import UUID
+from models.models import User
+from schemas.schemas import UserCreate
 import os
 
 # ✅ 自作モジュール
@@ -159,6 +161,20 @@ def delete_character_route(id: UUID, db: Session = Depends(get_db)):
     db.delete(character)
     db.commit()
     return {"message": f"キャラクター（ID: {id}）を削除しました"}
+
+# ✅ ユーザー登録エンドポイントを追加
+
+@app.post("/users/")
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.username == user.username).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="ユーザー名は既に存在します")
+    
+    new_user = User(username=user.username)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"id": new_user.id, "username": new_user.username}
 
 # ✅ ルート確認
 @app.get("/")
