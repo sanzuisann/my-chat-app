@@ -159,6 +159,17 @@ def delete_character_route(id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"キャラクター（ID: {id}）を削除しました"}
 
+# ✅ データベースを一括リセット（UUID対応テーブルで再作成）
+@app.get("/reset-db")
+def reset_database():
+    from models.models import Base
+    from db.database import engine
+
+    Base.metadata.drop_all(bind=engine)
+    Base.metadata.create_all(bind=engine)
+    return {"status": "✅ データベースをUUID対応で再作成しました"}
+
+
 # ✅ 動作確認用ルート
 @app.get("/")
 def root():
