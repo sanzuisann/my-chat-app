@@ -23,6 +23,12 @@ class CharacterUpdate(BaseModel):
     personality: Optional[str] = None
     system_prompt: Optional[str] = None
 
+# 🔸 チャットリクエスト用
+class ChatRequest(BaseModel):
+    user_id: str
+    character_id: str
+    user_message: str
+
 # 🔸 会話保存リクエスト用
 class ChatMessage(BaseModel):
     user_id: int

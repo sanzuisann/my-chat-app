@@ -14,7 +14,7 @@ from models.models import Base, Character, ChatHistory
 from db.database import engine
 from schemas.schemas import (
     CharacterCreate, CharacterResponse, CharacterUpdate,
-    ChatMessage, ChatHistoryResponse
+    ChatMessage, ChatHistoryResponse, ChatRequest
 )
 from crud.crud import get_all_characters, create_character, get_character_by_name
 from dependencies.dependencies import get_db
@@ -43,27 +43,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ 会話履歴（テスト用の一時保存）
-chat_history = []
-
-# ✅ Pydanticモデル（GPT用）
-class MessageData(BaseModel):
-    message: str
-
-# ✅ チャット応答エンドポイント（OpenAI + ローカル履歴利用）
+# ✅ チャット応答エンドポイント（UUID対応 & 履歴保存）
 @app.post("/chat")
-async def chat(data: MessageData):
-    chat_history.append({"role": "user", "content": data.message})
+def chat(request: ChatRequest, db: Session = Depends(get_db)):
+    # 過去の履歴を取得（最大10件）
+    history = db.query(ChatHistory)\
+        .filter(ChatHistory.user_id == request.user_id,
+                ChatHistory.character_id == request.character_id)\
+        .order_by(ChatHistory.timestamp.asc())\
+        .limit(10).all()
 
-    system_prompt = {
-        "role": "system",
-        "content": "あなたは静かな村に住む親切な魔法使いです。旅人に丁寧に応対し、時に謎めいたヒントを与えます。"
-    }
+    messages = [{"role": h.role, "content": h.message} for h in history]
+    messages.append({"role": "user", "content": request.user_message})
+
+    # キャラクターの system_prompt を取得
+    character = db.query(Character).filter(Character.id == request.character_id).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
+
+    system_prompt = {"role": "system", "content": character.system_prompt}
 
     try:
         response = client.chat.completions.create(
             model="gpt-4-turbo",
-            messages=[system_prompt] + chat_history[-10:],
+            messages=[system_prompt] + messages,
             temperature=0.8,
             max_tokens=200
         )
@@ -72,10 +75,24 @@ async def chat(data: MessageData):
         print("❌ GPT API エラー:", e)
         return {"reply": f"エラーが発生しました: {str(e)}"}
 
-    chat_history.append({"role": "assistant", "content": reply})
+    # ユーザーの発言とAIの返答を保存
+    db.add(ChatHistory(
+        user_id=request.user_id,
+        character_id=request.character_id,
+        role="user",
+        message=request.user_message
+    ))
+    db.add(ChatHistory(
+        user_id=request.user_id,
+        character_id=request.character_id,
+        role="assistant",
+        message=reply
+    ))
+    db.commit()
+
     return {"reply": reply}
 
-# ✅ 会話履歴保存エンドポイント
+# ✅ 会話履歴保存エンドポイント（必要なら残してもOK）
 @app.post("/history/")
 def save_chat_message(chat: ChatMessage, db: Session = Depends(get_db)):
     new_message = ChatHistory(
@@ -90,7 +107,7 @@ def save_chat_message(chat: ChatMessage, db: Session = Depends(get_db)):
 
 # ✅ 会話履歴取得エンドポイント
 @app.get("/history/{user_id}/{character_id}", response_model=List[ChatHistoryResponse])
-def get_chat_history(user_id: int, character_id: int, db: Session = Depends(get_db)):
+def get_chat_history(user_id: str, character_id: str, db: Session = Depends(get_db)):
     history = db.query(ChatHistory)\
         .filter(ChatHistory.user_id == user_id, ChatHistory.character_id == character_id)\
         .order_by(ChatHistory.timestamp)\
@@ -133,7 +150,7 @@ def get_characters_route(db: Session = Depends(get_db)):
 
 # ✅ キャラクター削除エンドポイント
 @app.delete("/characters/{id}")
-def delete_character_route(id: int, db: Session = Depends(get_db)):
+def delete_character_route(id: str, db: Session = Depends(get_db)):
     character = db.query(Character).filter(Character.id == id).first()
     if not character:
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
