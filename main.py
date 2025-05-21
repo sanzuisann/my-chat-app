@@ -10,13 +10,14 @@ from datetime import datetime
 from uuid import UUID
 import os
 import uuid
+import json
 
 # ✅ 自作モジュール
 from models.models import Base, Character, ChatHistory, User, InternalState
 from db.database import engine
 from schemas.schemas import (
     CharacterCreate, CharacterResponse, CharacterUpdate,
-    ChatMessage, ChatHistoryResponse, ChatRequest, UserCreate
+    ChatMessage, ChatHistoryResponse, ChatRequest, UserCreate, EvaluateTrustRequest
 )
 from crud.crud import get_all_characters, create_character, get_character_by_name
 from dependencies.dependencies import get_db
@@ -72,7 +73,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-4o",
             messages=[system_prompt] + messages,
             temperature=0.8,
             max_tokens=200
@@ -175,11 +176,6 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return {"id": new_user.id, "username": new_user.username}
 
 # ✅ 信頼度評価エンドポイント
-class EvaluateTrustRequest(BaseModel):
-    user_id: UUID
-    character_id: UUID
-    player_message: str
-
 @app.post("/evaluate-trust")
 def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     system_prompt = """
@@ -210,7 +206,7 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
                 {"role": "user", "content": user_input}
             ]
         )
-        result = eval(response.choices[0].message.content)
+        result = json.loads(response.choices[0].message.content)
         score = int(result["score"])
         reason = result.get("reason", "")
     except Exception as e:
