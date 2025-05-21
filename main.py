@@ -208,8 +208,7 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_input}
-            ],
-            response_format="json"
+            ]
         )
         result = eval(response.choices[0].message.content)
         score = int(result["score"])
