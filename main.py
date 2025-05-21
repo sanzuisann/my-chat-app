@@ -8,16 +8,15 @@ from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
 from uuid import UUID
-from models.models import User
-from schemas.schemas import UserCreate
 import os
+import uuid
 
 # ✅ 自作モジュール
-from models.models import Base, Character, ChatHistory
+from models.models import Base, Character, ChatHistory, User, InternalState
 from db.database import engine
 from schemas.schemas import (
     CharacterCreate, CharacterResponse, CharacterUpdate,
-    ChatMessage, ChatHistoryResponse, ChatRequest
+    ChatMessage, ChatHistoryResponse, ChatRequest, UserCreate
 )
 from crud.crud import get_all_characters, create_character, get_character_by_name
 from dependencies.dependencies import get_db
@@ -163,18 +162,87 @@ def delete_character_route(id: UUID, db: Session = Depends(get_db)):
     return {"message": f"キャラクター（ID: {id}）を削除しました"}
 
 # ✅ ユーザー登録エンドポイントを追加
-
 @app.post("/users/")
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == user.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="ユーザー名は既に存在します")
-    
+
     new_user = User(username=user.username)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return {"id": new_user.id, "username": new_user.username}
+
+# ✅ 信頼度評価エンドポイント
+class EvaluateTrustRequest(BaseModel):
+    user_id: UUID
+    character_id: UUID
+    player_message: str
+
+@app.post("/evaluate-trust")
+def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
+    system_prompt = """
+    あなたはゲームキャラクターとして、プレイヤーの発言に対する信頼度を評価する役割を担っています。
+    以下のスケールに基づき、信頼度を評価し、理由をJSON形式で出力してください：
+
+    -3: 全く信頼できない
+    -2: かなり疑わしい
+    -1: 少し怪しい
+     0: 中立
+    +1: やや信頼できる
+    +2: かなり信頼できる
+    +3: 非常に信頼できる
+
+    出力形式：
+    {
+      \"score\": 整数（-3〜+3）,\n      \"reason\": \"理由（簡潔に）\"
+    }
+    """
+
+    user_input = f'プレイヤーの発言: "{data.player_message}" を評価してください。'
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input}
+            ],
+            response_format="json"
+        )
+        result = eval(response.choices[0].message.content)
+        score = int(result["score"])
+        reason = result.get("reason", "")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"GPT呼び出しエラー: {str(e)}")
+
+    state = db.query(InternalState).filter_by(
+        user_id=data.user_id,
+        character_id=data.character_id,
+        param_name="trust"
+    ).first()
+
+    if state:
+        state.value += score
+        state.updated_at = datetime.utcnow()
+    else:
+        state = InternalState(
+            user_id=data.user_id,
+            character_id=data.character_id,
+            param_name="trust",
+            value=score,
+            updated_at=datetime.utcnow()
+        )
+        db.add(state)
+
+    db.commit()
+
+    return {
+        "new_trust": state.value,
+        "score": score,
+        "reason": reason
+    }
 
 # ✅ ルート確認
 @app.get("/")

@@ -47,7 +47,11 @@ class ChatHistoryResponse(BaseModel):
         from_attributes = True
 
 # 🔸 ユーザー登録リクエスト用スキーマ
-# クライアントがユーザー名を送信して新規ユーザーを作成する際に使用
-
 class UserCreate(BaseModel):
     username: str
+
+# ✅ 信頼度評価リクエスト用スキーマ（新規追加）
+class EvaluateTrustRequest(BaseModel):
+    user_id: UUID
+    character_id: UUID
+    player_message: str
