@@ -11,6 +11,7 @@ from uuid import UUID
 import os
 import uuid
 import json
+import re
 
 # ✅ 自作モジュール
 from models.models import Base, Character, ChatHistory, User, InternalState
@@ -180,8 +181,9 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     system_prompt = """
     あなたはゲームキャラクターとして、プレイヤーの発言に対する信頼度を評価する役割を担っています。
-    以下のスケールに基づき、信頼度を評価し、理由をJSON形式で出力してください：
+    以下のスケールに基づき、信頼度を評価し、出力形式に厳密に従ってください。
 
+    出力スケール:
     -3: 全く信頼できない
     -2: かなり疑わしい
     -1: 少し怪しい
@@ -190,9 +192,10 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     +2: かなり信頼できる
     +3: 非常に信頼できる
 
-    出力形式：
+    🔒 出力は以下の形式のJSONのみ。全角文字や解説、改行は不要です。
     {
-      \"score\": 整数（-3〜+3）,\n      \"reason\": \"理由（簡潔に）\"
+      "score": 整数（-3〜+3）, 
+      "reason": "理由（簡潔に）"
     }
     """
 
@@ -206,9 +209,16 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
                 {"role": "user", "content": user_input}
             ]
         )
-        result = json.loads(response.choices[0].message.content)
+        raw_output = response.choices[0].message.content.strip()
+
+        match = re.search(r'{.*}', raw_output, re.DOTALL)
+        if not match:
+            raise HTTPException(status_code=500, detail="GPTの応答からJSONを抽出できませんでした")
+
+        result = json.loads(match.group())
         score = int(result["score"])
         reason = result.get("reason", "")
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"GPT呼び出しエラー: {str(e)}")
 
