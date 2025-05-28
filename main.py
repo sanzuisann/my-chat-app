@@ -57,22 +57,16 @@ def reset_db():
 # ✅ チャット応答エンドポイント
 @app.post("/chat")
 def chat(request: ChatRequest, db: Session = Depends(get_db)):
-    # ✅ 最新10件の履歴を取得
-    history = db.query(ChatHistory)\
-        .filter(ChatHistory.user_id == request.user_id,
-                ChatHistory.character_id == request.character_id)\
-        .order_by(ChatHistory.timestamp.asc())\
-        .limit(10).all()
+    history = db.query(ChatHistory)        .filter(ChatHistory.user_id == request.user_id,
+                ChatHistory.character_id == request.character_id)        .order_by(ChatHistory.timestamp.asc())        .limit(10).all()
 
     messages = [{"role": h.role, "content": h.message} for h in history]
     messages.append({"role": "user", "content": request.user_message})
 
-    # ✅ キャラクター情報の取得
     character = db.query(Character).filter(Character.id == request.character_id).first()
     if not character:
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
 
-    # ✅ 信頼度の取得
     state = db.query(InternalState).filter_by(
         user_id=request.user_id,
         character_id=request.character_id,
@@ -80,7 +74,6 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     ).first()
     trust = state.value if state else 0
 
-    # ✅ 信頼度に応じたレベル変換
     def trust_to_level(trust: int) -> int:
         if trust >= 7:
             return 4
@@ -93,24 +86,21 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         else:
             return 0
 
-    # ✅ 各レベルに応じたトーン変化を定義
     def get_prompt_by_level(level: int) -> str:
         prompt_map = {
             0: "相手を全く信用していないように、冷たく、距離を取って応答してください。",
             1: "相手に警戒しており、慎重に言葉を選んでください。",
-            2: "",  # 中立
+            2: "",
             3: "少し心を許し、優しく応答してください。",
             4: "非常に親しい相手として、温かく、積極的に応答してください。"
         }
         return prompt_map.get(level, "")
 
-    # ✅ 信頼度に応じたプロンプト生成
     trust_level = trust_to_level(int(trust))
     prompt_adjustment = get_prompt_by_level(trust_level)
     full_system_prompt = character.system_prompt + " " + prompt_adjustment
     system_prompt = {"role": "system", "content": full_system_prompt}
 
-    # ✅ GPTに会話送信
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -123,7 +113,6 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         print("❌ GPT API エラー:", e)
         return {"reply": f"エラーが発生しました: {str(e)}"}
 
-    # ✅ 履歴保存
     db.add(ChatHistory(
         user_id=request.user_id,
         character_id=request.character_id,
@@ -139,7 +128,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     db.commit()
 
     return {"reply": reply}
-# ✅ 会話履歴保存（任意）
+
 @app.post("/history/")
 def save_chat_message(chat: ChatMessage, db: Session = Depends(get_db)):
     new_message = ChatHistory(
@@ -152,16 +141,20 @@ def save_chat_message(chat: ChatMessage, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success"}
 
-# ✅ 会話履歴取得（UUID対応）
-@app.get("/history/{user_id}/{character_id}", response_model=List[ChatHistoryResponse])
+# ✅ 修正：speakerを含む履歴を返す
+@app.get("/history/{user_id}/{character_id}")
 def get_chat_history(user_id: UUID, character_id: UUID, db: Session = Depends(get_db)):
-    history = db.query(ChatHistory)\
-        .filter(ChatHistory.user_id == user_id, ChatHistory.character_id == character_id)\
-        .order_by(ChatHistory.timestamp)\
-        .all()
-    return history
+    history = db.query(ChatHistory)        .filter(ChatHistory.user_id == user_id, ChatHistory.character_id == character_id)        .order_by(ChatHistory.timestamp)        .all()
 
-# ✅ キャラクター登録
+    return [
+        {
+            "speaker": h.role,
+            "message": h.message,
+            "timestamp": h.timestamp.isoformat()
+        }
+        for h in history
+    ]
+
 @app.post("/characters/", response_model=CharacterResponse)
 def create_character_route(character: CharacterCreate, db: Session = Depends(get_db)):
     db_character = get_character_by_name(db, character.name)
@@ -169,53 +162,44 @@ def create_character_route(character: CharacterCreate, db: Session = Depends(get
         raise HTTPException(status_code=400, detail="❌ 名前が既に使われています")
     return create_character(db, character)
 
-# ✅ キャラクター更新
 @app.put("/characters/{name}", response_model=CharacterResponse)
 def update_character_route(name: str, update_data: CharacterUpdate, db: Session = Depends(get_db)):
     character = db.query(Character).filter(Character.name == name).first()
     if not character:
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
-
     if update_data.personality is not None:
         character.personality = update_data.personality
     if update_data.system_prompt is not None:
         character.system_prompt = update_data.system_prompt
-
     db.commit()
     db.refresh(character)
     return character
 
-# ✅ キャラクター一覧取得
 @app.get("/characters/", response_model=List[CharacterResponse])
 def get_characters_route(db: Session = Depends(get_db)):
     characters = get_all_characters(db)
     return characters
 
-# ✅ キャラクター削除（UUID対応）
 @app.delete("/characters/{id}")
 def delete_character_route(id: UUID, db: Session = Depends(get_db)):
     character = db.query(Character).filter(Character.id == id).first()
     if not character:
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
-
     db.delete(character)
     db.commit()
     return {"message": f"キャラクター（ID: {id}）を削除しました"}
 
-# ✅ ユーザー登録エンドポイントを追加
 @app.post("/users/")
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == user.username).first()
     if existing:
         raise HTTPException(status_code=400, detail="ユーザー名は既に存在します")
-
     new_user = User(username=user.username)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
     return {"id": new_user.id, "username": new_user.username}
 
-# ✅ 信頼度評価エンドポイント
 @app.post("/evaluate-trust")
 def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     system_prompt = """
@@ -249,15 +233,12 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
             ]
         )
         raw_output = response.choices[0].message.content.strip()
-
         match = re.search(r'{.*}', raw_output, re.DOTALL)
         if not match:
             raise HTTPException(status_code=500, detail="GPTの応答からJSONを抽出できませんでした")
-
         result = json.loads(match.group())
         score = int(result["score"])
         reason = result.get("reason", "")
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"GPT呼び出しエラー: {str(e)}")
 
@@ -288,7 +269,6 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
         "reason": reason
     }
 
-# ✅ ルート確認
 @app.get("/")
 def root():
     return {"message": "アプリは動作中です"}
