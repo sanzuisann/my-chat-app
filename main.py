@@ -57,8 +57,10 @@ def reset_db():
 # ✅ チャット応答エンドポイント
 @app.post("/chat")
 def chat(request: ChatRequest, db: Session = Depends(get_db)):
-    history = db.query(ChatHistory)        .filter(ChatHistory.user_id == request.user_id,
-                ChatHistory.character_id == request.character_id)        .order_by(ChatHistory.timestamp.asc())        .limit(10).all()
+    history = db.query(ChatHistory).filter(
+        ChatHistory.user_id == request.user_id,
+        ChatHistory.character_id == request.character_id
+    ).order_by(ChatHistory.timestamp.asc()).limit(10).all()
 
     messages = [{"role": h.role, "content": h.message} for h in history]
     messages.append({"role": "user", "content": request.user_message})
@@ -141,18 +143,19 @@ def save_chat_message(chat: ChatMessage, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "success"}
 
-# ✅ 修正：speakerを含む履歴を返す
 @app.get("/history/{user_id}/{character_id}")
 def get_chat_history(user_id: UUID, character_id: UUID, db: Session = Depends(get_db)):
-    history = db.query(ChatHistory)        .filter(ChatHistory.user_id == user_id, ChatHistory.character_id == character_id)        .order_by(ChatHistory.timestamp)        .all()
+    history = db.query(ChatHistory).filter(
+        ChatHistory.user_id == user_id,
+        ChatHistory.character_id == character_id
+    ).order_by(ChatHistory.timestamp).all()
 
     return [
         {
             "speaker": h.role,
             "message": h.message,
             "timestamp": h.timestamp.isoformat()
-        }
-        for h in history
+        } for h in history
     ]
 
 @app.post("/characters/", response_model=CharacterResponse)
@@ -167,18 +170,18 @@ def update_character_route(name: str, update_data: CharacterUpdate, db: Session 
     character = db.query(Character).filter(Character.name == name).first()
     if not character:
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
-    if update_data.personality is not None:
-        character.personality = update_data.personality
-    if update_data.system_prompt is not None:
-        character.system_prompt = update_data.system_prompt
+
+    update_fields = update_data.dict(exclude_unset=True)
+    for key, value in update_fields.items():
+        setattr(character, key, value)
+
     db.commit()
     db.refresh(character)
     return character
 
 @app.get("/characters/", response_model=List[CharacterResponse])
 def get_characters_route(db: Session = Depends(get_db)):
-    characters = get_all_characters(db)
-    return characters
+    return get_all_characters(db)
 
 @app.delete("/characters/{id}")
 def delete_character_route(id: UUID, db: Session = Depends(get_db)):
