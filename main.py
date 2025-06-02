@@ -12,6 +12,11 @@ import os
 import uuid
 import json
 import re
+import logging
+
+# ✅ ロギング設定
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # ✅ 自作モジュール
 from models.models import Base, Character, ChatHistory, User, InternalState
@@ -120,7 +125,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
         )
         reply = response.choices[0].message.content
     except Exception as e:
-        print("❌ GPT API エラー:", e)
+        logger.error("❌ GPT API エラー: %s", str(e))
         return {"reply": f"エラーが発生しました: {str(e)}"}
 
     db.add(ChatHistory(
@@ -168,10 +173,17 @@ def get_chat_history(user_id: UUID, character_id: UUID, db: Session = Depends(ge
 
 @app.post("/characters/", response_model=CharacterResponse)
 def create_character_route(character: CharacterCreate, db: Session = Depends(get_db)):
+    logger.info("▶️ キャラクター作成リクエスト受信: %s", character.dict())
     db_character = get_character_by_name(db, character.name)
     if db_character:
         raise HTTPException(status_code=400, detail="❌ 名前が既に使われています")
-    return create_character(db, character)
+    try:
+        result = create_character(db, character)
+        logger.info("✅ キャラクター作成成功: %s", result.id)
+        return result
+    except Exception as e:
+        logger.exception("❌ キャラクター作成中にエラー: %s", str(e))
+        raise HTTPException(status_code=500, detail="サーバー内部エラーが発生しました")
 
 @app.put("/characters/{name}", response_model=CharacterResponse)
 def update_character_route(name: str, update_data: CharacterUpdate, db: Session = Depends(get_db)):
