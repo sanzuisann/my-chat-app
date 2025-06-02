@@ -54,7 +54,7 @@ class ChatHistory(Base):
     __tablename__ = "chat_history"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-    
+
     # 発言したユーザー
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 

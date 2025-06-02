@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, Literal, List
+from typing import Optional, Literal, List, Dict
 from uuid import UUID
 from datetime import datetime
 
@@ -13,8 +13,8 @@ class CharacterCreate(BaseModel):
     background: Optional[str] = None          # 背景設定（ストーリー的な役割）
     tone: Optional[str] = None                # 口調（丁寧語・砕けた口調など）
     world: Optional[str] = None               # 世界観（どんな世界にいるキャラか）
-    prohibited: Optional[str] = None          # 禁止事項（JSON文字列）
-    examples: Optional[str] = None            # 対話例（JSON文字列）
+    prohibited: Optional[List[str]] = None    # 禁止事項（文字列のリスト）
+    examples: Optional[List[Dict[str, str]]] = None  # 対話例（{"user": "...", "assistant": "..."} のリスト）
 
 # 🔹 取得レスポンス用（キャラ情報表示）
 class CharacterResponse(BaseModel):
@@ -27,8 +27,8 @@ class CharacterResponse(BaseModel):
     background: Optional[str] = None
     tone: Optional[str] = None
     world: Optional[str] = None
-    prohibited: Optional[str] = None
-    examples: Optional[str] = None
+    prohibited: Optional[List[str]] = None
+    examples: Optional[List[Dict[str, str]]] = None
 
     class Config:
         from_attributes = True
@@ -42,8 +42,8 @@ class CharacterUpdate(BaseModel):
     background: Optional[str] = None
     tone: Optional[str] = None
     world: Optional[str] = None
-    prohibited: Optional[str] = None
-    examples: Optional[str] = None
+    prohibited: Optional[List[str]] = None
+    examples: Optional[List[Dict[str, str]]] = None
 
 # 🔸 チャット送信用リクエスト（UUID指定）
 class ChatRequest(BaseModel):

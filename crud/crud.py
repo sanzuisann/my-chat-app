@@ -1,14 +1,20 @@
+import json
 from sqlalchemy.orm import Session
 from models.models import Character
-from schemas.schemas import CharacterCreate  # ✅ 正しいインポートパス
+from schemas.schemas import CharacterCreate
 from typing import List
 
-# 🔸 キャラ新規作成
+# 🔸 キャラ新規作成（構造データをJSON文字列に変換して保存）
 def create_character(db: Session, character: CharacterCreate) -> Character:
     db_character = Character(
         name=character.name,
         personality=character.personality,
-        system_prompt=character.system_prompt
+        system_prompt=character.system_prompt,
+        background=character.background,
+        tone=character.tone,
+        world=character.world,
+        prohibited=json.dumps(character.prohibited) if character.prohibited else None,
+        examples=json.dumps(character.examples) if character.examples else None
     )
     db.add(db_character)
     db.commit()
