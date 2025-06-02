@@ -299,3 +299,5 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     }
 
 @app.get("/")
+def root():
+    return {"message": "アプリは動作中です"}
