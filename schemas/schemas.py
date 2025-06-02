@@ -8,10 +8,11 @@ class CharacterCreate(BaseModel):
     name: str                                 # キャラ名
     personality: str                          # 性格
     system_prompt: str                        # 基本プロンプト（予備）
-    
+
     # ✅ 拡張項目
     background: Optional[str] = None          # 背景設定（ストーリー的な役割）
     tone: Optional[str] = None                # 口調（丁寧語・砕けた口調など）
+    world: Optional[str] = None               # 世界観（どんな世界にいるキャラか）
     prohibited: Optional[str] = None          # 禁止事項（JSON文字列）
     examples: Optional[str] = None            # 対話例（JSON文字列）
 
@@ -25,6 +26,7 @@ class CharacterResponse(BaseModel):
     # ✅ 拡張項目
     background: Optional[str] = None
     tone: Optional[str] = None
+    world: Optional[str] = None
     prohibited: Optional[str] = None
     examples: Optional[str] = None
 
@@ -39,6 +41,7 @@ class CharacterUpdate(BaseModel):
     # ✅ 拡張項目（更新可能に）
     background: Optional[str] = None
     tone: Optional[str] = None
+    world: Optional[str] = None
     prohibited: Optional[str] = None
     examples: Optional[str] = None
 

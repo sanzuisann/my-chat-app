@@ -31,6 +31,9 @@ class Character(Base):
     # 口調の指定（例：「丁寧語」「乱暴」「関西弁」など）
     tone = Column(String, nullable=True)
 
+    # 世界観（キャラクターが属する物語世界や時代背景など）
+    world = Column(Text, nullable=True)
+
     # 禁止事項リスト（JSON文字列で保存）
     # 例: '["現実世界の話をしない", "攻撃的な発言をしない"]'
     prohibited = Column(Text, nullable=True)
