@@ -179,6 +179,8 @@ def create_character_route(character: CharacterCreate, db: Session = Depends(get
         raise HTTPException(status_code=400, detail="❌ 名前が既に使われています")
     try:
         result = create_character(db, character)
+        result.prohibited = json.loads(result.prohibited) if result.prohibited else None
+        result.examples = json.loads(result.examples) if result.examples else None
         logger.info("✅ キャラクター作成成功: %s", result.id)
         return result
     except Exception as e:
@@ -201,7 +203,11 @@ def update_character_route(name: str, update_data: CharacterUpdate, db: Session 
 
 @app.get("/characters/", response_model=List[CharacterResponse])
 def get_characters_route(db: Session = Depends(get_db)):
-    return get_all_characters(db)
+    characters = get_all_characters(db)
+    for char in characters:
+        char.prohibited = json.loads(char.prohibited) if char.prohibited else None
+        char.examples = json.loads(char.examples) if char.examples else None
+    return characters
 
 @app.delete("/characters/{id}")
 def delete_character_route(id: UUID, db: Session = Depends(get_db)):
@@ -210,7 +216,7 @@ def delete_character_route(id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
     db.delete(character)
     db.commit()
-    return {"message": f"キャラクター（ID: {id}）を削除しました"}
+    return {"message": f"キャラクター┈ID: {id}┉を削除しました"}
 
 @app.post("/users/")
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -240,7 +246,7 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
 
     🔒 出力は以下の形式のJSONのみ。全角文字や解説、改行は不要です。
     {
-      "score": 整数（-3〜+3）, 
+      "score": 整数（-3～+3）, 
       "reason": "理由（簡潔に）"
     }
     """
@@ -293,5 +299,3 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     }
 
 @app.get("/")
-def root():
-    return {"message": "アプリは動作中です"}
