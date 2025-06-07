@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Integer
+from sqlalchemy import Column, String, Text, ForeignKey, DateTime, Integer, Float
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import UUID  # PostgreSQL用UUID型
@@ -41,6 +41,13 @@ class Character(Base):
     # 対話例（ユーザーとキャラクターの例会話をJSONで保存）
     # 例: '[{"user": "こんにちは", "assistant": "やあ、よく来たね"}]'
     examples = Column(Text, nullable=True)
+
+    # Big Five スコア
+    openness = Column(Float, nullable=False, default=0.5)
+    conscientiousness = Column(Float, nullable=False, default=0.5)
+    extraversion = Column(Float, nullable=False, default=0.5)
+    agreeableness = Column(Float, nullable=False, default=0.5)
+    neuroticism = Column(Float, nullable=False, default=0.5)
 
 # 👤 ユーザー（プレイヤー）情報
 class User(Base):

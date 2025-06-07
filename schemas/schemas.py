@@ -16,6 +16,13 @@ class CharacterCreate(BaseModel):
     prohibited: Optional[List[str]] = None    # 禁止事項（文字列のリスト）
     examples: Optional[List[Dict[str, str]]] = None  # 対話例（{"user": "...", "assistant": "..."} のリスト）
 
+    # Big Five スコア
+    openness: float = 0.5
+    conscientiousness: float = 0.5
+    extraversion: float = 0.5
+    agreeableness: float = 0.5
+    neuroticism: float = 0.5
+
 # 🔹 取得レスポンス用（キャラ情報表示）
 class CharacterResponse(BaseModel):
     id: UUID
@@ -29,6 +36,13 @@ class CharacterResponse(BaseModel):
     world: Optional[str] = None
     prohibited: Optional[List[str]] = None
     examples: Optional[List[Dict[str, str]]] = None
+
+    # Big Five スコア
+    openness: float
+    conscientiousness: float
+    extraversion: float
+    agreeableness: float
+    neuroticism: float
 
     class Config:
         from_attributes = True
@@ -44,6 +58,13 @@ class CharacterUpdate(BaseModel):
     world: Optional[str] = None
     prohibited: Optional[List[str]] = None
     examples: Optional[List[Dict[str, str]]] = None
+
+    # Big Five スコア（更新用）
+    openness: Optional[float] = None
+    conscientiousness: Optional[float] = None
+    extraversion: Optional[float] = None
+    agreeableness: Optional[float] = None
+    neuroticism: Optional[float] = None
 
 # 🔸 チャット送信用リクエスト（UUID指定）
 class ChatRequest(BaseModel):
