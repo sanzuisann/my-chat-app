@@ -5,7 +5,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from pathlib import Path
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 from uuid import UUID
 import os
@@ -39,6 +39,27 @@ if not api_key:
 
 client = OpenAI(api_key=api_key)
 
+
+def extract_intent(user_message: str) -> str:
+    """Call GPT to extract a concise conversation intent."""
+    system_prompt = (
+        "あなたはユーザーの発言から会話の意図を1文で抽出するアシスタントです。"
+    )
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=0.5,
+            max_tokens=50,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error("❌ GPT意図抽出エラー: %s", str(e))
+        return ""
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -47,7 +68,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def build_full_prompt(character, trust_level: int) -> str:
+def build_full_prompt(character, trust_level: int, intent: Optional[str] = None) -> str:
     def get_prompt_by_level(level: int) -> str:
         prompt_map = {
             0: "相手を全く信用していないように、冷たく、距離を取って応答してください。",
@@ -64,6 +85,7 @@ def build_full_prompt(character, trust_level: int) -> str:
         for ex in json.loads(character.examples)
     ) if character.examples else "なし"
     trust_text = get_prompt_by_level(trust_level)
+    intent_text = f"\n【ユーザーの意図】\n{intent}" if intent else ""
 
     return f"""あなたは「{character.name}」というキャラクターとして対話を行います。
 
@@ -93,7 +115,7 @@ def build_full_prompt(character, trust_level: int) -> str:
 【会話例】
 {examples_text}
 
-{trust_text}
+{trust_text}{intent_text}
 """
 
 @app.get("/reset-db")
@@ -124,7 +146,8 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     trust = state.value if state else 0
     trust_level = int(trust)
 
-    full_system_prompt = build_full_prompt(character, trust_level)
+    intent = extract_intent(request.user_message)
+    full_system_prompt = build_full_prompt(character, trust_level, intent)
     system_prompt = {"role": "system", "content": full_system_prompt}
 
     try:
