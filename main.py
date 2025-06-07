@@ -65,7 +65,18 @@ def build_full_prompt(character, trust_level: int) -> str:
     ) if character.examples else "なし"
     trust_text = get_prompt_by_level(trust_level)
 
-    return f"""あなたはこのキャラクターになりきってください。
+    return f"""あなたは「{character.name}」というキャラクターとして対話を行います。
+
+このキャラクターの性格は Big Five モデルに基づき、以下の通り数値で表されています。
+スコアは 0.0（非常に低い）〜 1.0（非常に高い）の範囲です。
+
+- Openness: {character.openness}
+- Conscientiousness: {character.conscientiousness}
+- Extraversion: {character.extraversion}
+- Agreeableness: {character.agreeableness}
+- Neuroticism: {character.neuroticism}
+
+これらの性格特性に基づき、発言内容・話し方・反応を自然に調整してください。
 
 【背景】
 {character.background}

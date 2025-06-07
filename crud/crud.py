@@ -14,7 +14,12 @@ def create_character(db: Session, character: CharacterCreate) -> Character:
         tone=character.tone,
         world=character.world,
         prohibited=json.dumps(character.prohibited) if character.prohibited else None,
-        examples=json.dumps(character.examples) if character.examples else None
+        examples=json.dumps(character.examples) if character.examples else None,
+        openness=character.openness,
+        conscientiousness=character.conscientiousness,
+        extraversion=character.extraversion,
+        agreeableness=character.agreeableness,
+        neuroticism=character.neuroticism
     )
     db.add(db_character)
     db.commit()
