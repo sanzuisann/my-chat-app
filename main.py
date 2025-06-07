@@ -176,6 +176,8 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     ))
     db.commit()
 
+    if request.debug:
+        return {"reply": reply, "intent": intent}
     return {"reply": reply}
 
 @app.post("/history/")
