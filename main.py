@@ -205,11 +205,18 @@ def update_character_route(name: str, update_data: CharacterUpdate, db: Session 
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
 
     update_fields = update_data.dict(exclude_unset=True)
+    if "prohibited" in update_fields and isinstance(update_fields["prohibited"], list):
+        update_fields["prohibited"] = json.dumps(update_fields["prohibited"])
+    if "examples" in update_fields and isinstance(update_fields["examples"], list):
+        update_fields["examples"] = json.dumps(update_fields["examples"])
+
     for key, value in update_fields.items():
         setattr(character, key, value)
 
     db.commit()
     db.refresh(character)
+    character.prohibited = json.loads(character.prohibited) if character.prohibited else None
+    character.examples = json.loads(character.examples) if character.examples else None
     return character
 
 @app.get("/characters/", response_model=List[CharacterResponse])
