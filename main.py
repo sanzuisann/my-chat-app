@@ -38,6 +38,7 @@ from crud.crud import (
     create_character,
     get_character_by_name,
     create_construct,
+    create_constructs,
     get_constructs,
     delete_construct,
 )
@@ -373,11 +374,12 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
 
 # --------------------- Construct Endpoints ---------------------
 
-@app.post("/constructs/", response_model=ConstructResponse)
-def create_construct_route(data: ConstructCreate, db: Session = Depends(get_db)):
-    construct = create_construct(db, data)
-    construct.axis = data.axis
-    return construct
+@app.post("/constructs/", response_model=List[ConstructResponse])
+def create_construct_route(data: List[ConstructCreate], db: Session = Depends(get_db)):
+    constructs = create_constructs(db, data)
+    for obj, req in zip(constructs, data):
+        obj.axis = req.axis
+    return constructs
 
 
 @app.get("/constructs/{user_id}/{character_id}", response_model=List[ConstructResponse])

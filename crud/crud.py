@@ -51,6 +51,27 @@ def create_construct(db: Session, data: ConstructCreate) -> Construct:
     return construct
 
 
+# 🔸 複数コンストラクト作成
+def create_constructs(db: Session, constructs: List[ConstructCreate]) -> List[Construct]:
+    objs = []
+    for data in constructs:
+        obj = Construct(
+            user_id=data.user_id,
+            character_id=data.character_id,
+            axis=json.dumps(data.axis),
+            name=data.name,
+            importance=data.importance,
+            behavior_effect=data.behavior_effect,
+            value=data.value,
+        )
+        db.add(obj)
+        objs.append(obj)
+    db.commit()
+    for obj in objs:
+        db.refresh(obj)
+    return objs
+
+
 # 🔹 指定ユーザー・キャラのコンストラクト一覧
 def get_constructs(db: Session, user_id, character_id) -> List[Construct]:
     return (
