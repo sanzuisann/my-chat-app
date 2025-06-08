@@ -98,3 +98,21 @@ class EvaluateTrustRequest(BaseModel):
     user_id: UUID
     character_id: UUID
     player_message: str
+
+# ✅ コンストラクト関連
+class ConstructBase(BaseModel):
+    user_id: UUID
+    character_id: UUID
+    axis: str
+    value: int = 0
+
+
+class ConstructCreate(ConstructBase):
+    pass
+
+
+class ConstructResponse(ConstructBase):
+    id: UUID
+
+    class Config:
+        from_attributes = True
