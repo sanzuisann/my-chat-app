@@ -97,3 +97,22 @@ class InternalState(Base):
 
     # 最終更新日時（自動更新）
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+# 🏷️ 価値軸（コンストラクト）
+class Construct(Base):
+    """User specific value axis for a character."""
+    __tablename__ = "constructs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
+
+    # 関連ユーザー
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+    # 関連キャラクター
+    character_id = Column(UUID(as_uuid=True), ForeignKey("characters.id"), nullable=False)
+
+    # 軸名
+    axis = Column(String, nullable=False)
+
+    # 値（-5～+5 程度を想定）
+    value = Column(Integer, default=0)

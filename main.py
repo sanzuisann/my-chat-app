@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
@@ -22,10 +22,25 @@ logger = logging.getLogger(__name__)
 from models.models import Base, Character, ChatHistory, User, InternalState
 from db.database import engine
 from schemas.schemas import (
-    CharacterCreate, CharacterResponse, CharacterUpdate,
-    ChatMessage, ChatHistoryResponse, ChatRequest, UserCreate, EvaluateTrustRequest
+    CharacterCreate,
+    CharacterResponse,
+    CharacterUpdate,
+    ChatMessage,
+    ChatHistoryResponse,
+    ChatRequest,
+    UserCreate,
+    EvaluateTrustRequest,
+    ConstructCreate,
+    ConstructResponse,
 )
-from crud.crud import get_all_characters, create_character, get_character_by_name
+from crud.crud import (
+    get_all_characters,
+    create_character,
+    get_character_by_name,
+    create_construct,
+    get_constructs,
+    delete_construct,
+)
 from dependencies.dependencies import get_db
 
 app = FastAPI()
@@ -68,7 +83,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def build_full_prompt(character, trust_level: int, intent: Optional[str] = None) -> str:
+def build_full_prompt(character, trust_level: int, constructs=None, intent: Optional[str] = None) -> str:
     def get_prompt_by_level(level: int) -> str:
         prompt_map = {
             0: "相手を全く信用していないように、冷たく、距離を取って応答してください。",
@@ -86,6 +101,7 @@ def build_full_prompt(character, trust_level: int, intent: Optional[str] = None)
     ) if character.examples else "なし"
     trust_text = get_prompt_by_level(trust_level)
     intent_text = f"\n【ユーザーの意図】\n{intent}" if intent else ""
+    constructs_text = "\n".join(f"- {c.axis}: {c.value}" for c in constructs) if constructs else "なし"
 
     return f"""あなたは「{character.name}」というキャラクターとして対話を行います。
 
@@ -114,6 +130,9 @@ def build_full_prompt(character, trust_level: int, intent: Optional[str] = None)
 
 【会話例】
 {examples_text}
+
+【価値軸】
+{constructs_text}
 
 {trust_text}{intent_text}
 """
@@ -146,8 +165,10 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     trust = state.value if state else 0
     trust_level = int(trust)
 
+    constructs = get_constructs(db, request.user_id, request.character_id)
+
     intent = extract_intent(request.user_message)
-    full_system_prompt = build_full_prompt(character, trust_level, intent)
+    full_system_prompt = build_full_prompt(character, trust_level, constructs, intent)
     system_prompt = {"role": "system", "content": full_system_prompt}
 
     try:
@@ -340,6 +361,51 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
         "score": score,
         "reason": reason
     }
+
+
+# --------------------- Construct Endpoints ---------------------
+
+@app.post("/constructs/", response_model=ConstructResponse)
+def create_construct_route(data: ConstructCreate, db: Session = Depends(get_db)):
+    construct = create_construct(db, data)
+    return construct
+
+
+@app.get("/constructs/{user_id}/{character_id}", response_model=List[ConstructResponse])
+def list_constructs_route(user_id: UUID, character_id: UUID, db: Session = Depends(get_db)):
+    return get_constructs(db, user_id, character_id)
+
+
+@app.delete("/constructs/{construct_id}")
+def delete_construct_route(construct_id: UUID, db: Session = Depends(get_db)):
+    c = delete_construct(db, construct_id)
+    if not c:
+        raise HTTPException(status_code=404, detail="Construct not found")
+    return {"message": "deleted"}
+
+
+@app.post("/constructs/import")
+async def import_constructs(file: UploadFile, db: Session = Depends(get_db)):
+    content = await file.read()
+    lines = content.decode("utf-8").splitlines()
+    for line in lines:
+        if not line.strip():
+            continue
+        data = json.loads(line)
+        create_construct(db, ConstructCreate(**data))
+    return {"status": "imported", "count": len(lines)}
+
+
+@app.get("/constructs/export/{user_id}/{character_id}")
+def export_constructs(user_id: UUID, character_id: UUID, db: Session = Depends(get_db)):
+    constructs = get_constructs(db, user_id, character_id)
+    jsonl = "\n".join(json.dumps({
+        "user_id": str(c.user_id),
+        "character_id": str(c.character_id),
+        "axis": c.axis,
+        "value": c.value,
+    }) for c in constructs)
+    return Response(content=jsonl, media_type="text/plain")
 
 @app.get("/")
 def root():
