@@ -103,7 +103,10 @@ class EvaluateTrustRequest(BaseModel):
 class ConstructBase(BaseModel):
     user_id: UUID
     character_id: UUID
-    axis: str
+    axis: List[str]
+    name: str
+    importance: int = 0
+    behavior_effect: str
     value: int = 0
 
 

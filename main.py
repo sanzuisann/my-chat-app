@@ -101,7 +101,12 @@ def build_full_prompt(character, trust_level: int, constructs=None, intent: Opti
     ) if character.examples else "なし"
     trust_text = get_prompt_by_level(trust_level)
     intent_text = f"\n【ユーザーの意図】\n{intent}" if intent else ""
-    constructs_text = "\n".join(f"- {c.axis}: {c.value}" for c in constructs) if constructs else "なし"
+    def format_construct(c):
+        axis = json.loads(c.axis) if isinstance(c.axis, str) else c.axis
+        pair = f"{axis[0]} ↔ {axis[1]}" if len(axis) == 2 else ",".join(axis)
+        return f"- {c.name} ({pair}) = {c.value} / importance {c.importance}\n  {c.behavior_effect}"
+
+    constructs_text = "\n".join(format_construct(c) for c in constructs) if constructs else "なし"
 
     return f"""あなたは「{character.name}」というキャラクターとして対話を行います。
 
@@ -368,12 +373,16 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
 @app.post("/constructs/", response_model=ConstructResponse)
 def create_construct_route(data: ConstructCreate, db: Session = Depends(get_db)):
     construct = create_construct(db, data)
+    construct.axis = data.axis
     return construct
 
 
 @app.get("/constructs/{user_id}/{character_id}", response_model=List[ConstructResponse])
 def list_constructs_route(user_id: UUID, character_id: UUID, db: Session = Depends(get_db)):
-    return get_constructs(db, user_id, character_id)
+    constructs = get_constructs(db, user_id, character_id)
+    for c in constructs:
+        c.axis = json.loads(c.axis)
+    return constructs
 
 
 @app.delete("/constructs/{construct_id}")
@@ -402,7 +411,10 @@ def export_constructs(user_id: UUID, character_id: UUID, db: Session = Depends(g
     jsonl = "\n".join(json.dumps({
         "user_id": str(c.user_id),
         "character_id": str(c.character_id),
-        "axis": c.axis,
+        "axis": json.loads(c.axis),
+        "name": c.name,
+        "importance": c.importance,
+        "behavior_effect": c.behavior_effect,
         "value": c.value,
     }) for c in constructs)
     return Response(content=jsonl, media_type="text/plain")
