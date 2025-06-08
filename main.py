@@ -202,9 +202,12 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     ))
     db.commit()
 
+    response_data = {"reply": reply}
     if request.debug:
-        return {"reply": reply, "intent": intent}
-    return {"reply": reply}
+        response_data["intent"] = intent
+    if request.include_prompt:
+        response_data["prompt"] = [system_prompt] + messages
+    return response_data
 
 @app.post("/history/")
 def save_chat_message(chat: ChatMessage, db: Session = Depends(get_db)):
