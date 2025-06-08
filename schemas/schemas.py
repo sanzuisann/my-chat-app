@@ -72,6 +72,7 @@ class ChatRequest(BaseModel):
     character_id: UUID
     user_message: str
     debug: Optional[bool] = False
+    include_prompt: Optional[bool] = False
 
 # 🔸 会話履歴保存用リクエスト（UUID対応）
 class ChatMessage(BaseModel):

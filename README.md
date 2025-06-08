@@ -50,7 +50,7 @@ The API will be available on `http://localhost:8000` by default.
 | `PUT /characters/{name}`           | Update character details by name.          |
 | `GET /characters/`                 | List all characters.                       |
 | `DELETE /characters/{id}`          | Delete a character by ID.                  |
-| `POST /chat`                       | Send a message and receive a reply.        |
+| `POST /chat`                       | Send a message and receive a reply. Use `include_prompt=true` to also return the OpenAI prompt.        |
 | `POST /history/`                   | Store a chat message manually.             |
 | `GET /history/{user_id}/{character_id}` | Retrieve recent chat history.         |
 | `POST /evaluate-trust`             | Update trust score for a conversation.     |
