@@ -39,7 +39,10 @@ def create_construct(db: Session, data: ConstructCreate) -> Construct:
     construct = Construct(
         user_id=data.user_id,
         character_id=data.character_id,
-        axis=data.axis,
+        axis=json.dumps(data.axis),
+        name=data.name,
+        importance=data.importance,
+        behavior_effect=data.behavior_effect,
         value=data.value,
     )
     db.add(construct)

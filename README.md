@@ -54,6 +54,11 @@ The API will be available on `http://localhost:8000` by default.
 | `POST /history/`                   | Store a chat message manually.             |
 | `GET /history/{user_id}/{character_id}` | Retrieve recent chat history.         |
 | `POST /evaluate-trust`             | Update trust score for a conversation.     |
+| `POST /constructs/`                | Create a value axis construct.  |
+| `GET /constructs/{user_id}/{character_id}` | List constructs for a user and character. |
+| `DELETE /constructs/{id}`          | Delete a construct by ID. |
+| `POST /constructs/import`          | Import constructs from JSONL. |
+| `GET /constructs/export/{user_id}/{character_id}` | Export constructs as JSONL. |
 
 See the `schemas` module for request and response shapes for each endpoint.
 

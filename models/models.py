@@ -101,6 +101,7 @@ class InternalState(Base):
 # 🏷️ 価値軸（コンストラクト）
 class Construct(Base):
     """User specific value axis for a character."""
+
     __tablename__ = "constructs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
@@ -111,8 +112,17 @@ class Construct(Base):
     # 関連キャラクター
     character_id = Column(UUID(as_uuid=True), ForeignKey("characters.id"), nullable=False)
 
-    # 軸名
-    axis = Column(String, nullable=False)
+    # 軸の両極値ペアをJSON文字列で保持
+    axis = Column(Text, nullable=False)
+
+    # 軸の名称
+    name = Column(String, nullable=False)
+
+    # 重要度（0〜5程度を想定）
+    importance = Column(Integer, default=0)
+
+    # 行動への影響説明
+    behavior_effect = Column(Text, nullable=False)
 
     # 値（-5～+5 程度を想定）
     value = Column(Integer, default=0)
