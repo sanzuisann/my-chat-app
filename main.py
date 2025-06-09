@@ -100,11 +100,11 @@ def map_liking_to_level(liking: int) -> int:
 def build_full_prompt(character, liking_level: int, constructs=None, intent: Optional[str] = None) -> str:
     def get_prompt_by_level(level: int) -> str:
         prompt_map = {
-            0: "相手を大嫌いで、極力関わりたくない態度で応答してください。",
-            1: "相手をあまり好ましく思っておらず、ぶっきらぼうに応答してください。",
-            2: "相手への感情は特になく、淡々と応答してください。",
-            3: "相手に好感を抱き、親しげに応答してください。",
-            4: "相手が大好きで、喜んで親密に応答してください。"
+            0: "相手を嫌っているように、冷たく、感情を抑えて応答してください。",
+            1: "相手に警戒しつつ、距離を取りつつ応答してください。",
+            2: "",  # 中立
+            3: "相手に少し好意を持ち、優しく応答してください。",
+            4: "非常に親しい相手として、親しみを込めて応答してください。"
         }
         return prompt_map.get(level, "")
 
