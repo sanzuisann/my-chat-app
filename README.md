@@ -53,7 +53,7 @@ The API will be available on `http://localhost:8000` by default.
 | `POST /chat`                       | Send a message and receive a reply. Use `include_prompt=true` to also return the OpenAI prompt.        |
 | `POST /history/`                   | Store a chat message manually.             |
 | `GET /history/{user_id}/{character_id}` | Retrieve recent chat history.         |
-| `POST /evaluate-liking`            | Update liking score for a conversation.    |
+| `POST /evaluate-liking`            | Update the character's liking score.       |
 | `POST /constructs/`                | Create one or multiple value axis constructs. |
 | `GET /constructs/{user_id}/{character_id}` | List constructs for a user and character. |
 | `DELETE /constructs/{id}`          | Delete a construct by ID. |

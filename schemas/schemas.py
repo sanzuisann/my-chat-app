@@ -94,7 +94,7 @@ class ChatHistoryResponse(BaseModel):
 class UserCreate(BaseModel):
     username: str
 
-# ✅ 信頼度評価用リクエスト
+# ✅ 好感度評価用リクエスト
 class EvaluateTrustRequest(BaseModel):
     user_id: UUID
     character_id: UUID
