@@ -77,7 +77,7 @@ class ChatHistory(Base):
     # 発言タイムスタンプ
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
-# 🔧 内部状態（信頼度などの内部パラメータ）を管理
+# 🔧 内部状態（好感度などの内部パラメータ）を管理
 class InternalState(Base):
     __tablename__ = "internal_states"
 
@@ -89,10 +89,10 @@ class InternalState(Base):
     # 対象キャラクター
     character_id = Column(UUID(as_uuid=True), ForeignKey("characters.id"), nullable=False)
 
-    # 状態の名前（例："trust", "affection", "anger" など）
+    # 状態の名前（例："liking", "affection", "anger" など）
     param_name = Column(String, nullable=False)
 
-    # 値（整数）例：信頼度 -10〜+10
+    # 値（整数）例：好感度 -10〜+10
     value = Column(Integer, default=0)
 
     # 最終更新日時（自動更新）
