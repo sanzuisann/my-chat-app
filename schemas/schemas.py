@@ -99,6 +99,8 @@ class EvaluateLikingRequest(BaseModel):
     user_id: UUID
     character_id: UUID
     player_message: str
+    debug: Optional[bool] = False
+    include_prompt: Optional[bool] = False
 
 # ✅ コンストラクト関連
 class ConstructBase(BaseModel):

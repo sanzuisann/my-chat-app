@@ -82,8 +82,9 @@ def evaluate_liking_character_view(
     character: Character,
     constructs: List[ConstructResponse],
     liking_raw: int,
-) -> tuple[int, str, str]:
-    """Return (score, reason, intent) evaluating liking from the character view."""
+    return_raw: bool = False,
+) -> tuple[int, str, str, str | None, dict | None]:
+    """Evaluate liking from the character view and optionally return debug info."""
     intent = extract_intent(player_message)
     liking_level = map_liking_to_level(liking_raw)
     eval_instruction = (
@@ -97,17 +98,19 @@ def evaluate_liking_character_view(
         constructs,
         intent,
     ) + eval_instruction
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": player_message},
+    ]
 
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": player_message},
-            ],
+            messages=messages,
             temperature=0.3,
             max_tokens=80,
         )
+        raw_json = response.model_dump() if return_raw else None
         raw = response.choices[0].message.content.strip()
         match = re.search(r"{.*}", raw, re.DOTALL)
         if match:
@@ -121,8 +124,9 @@ def evaluate_liking_character_view(
         logger.error("❌ Liking eval error: %s", str(e))
         score = 0
         reason = ""
+        raw_json = None
 
-    return score, reason, intent
+    return score, reason, intent, system_prompt if return_raw else None, raw_json
 
 app.add_middleware(
     CORSMiddleware,
@@ -246,6 +250,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
             max_tokens=200
         )
         reply = response.choices[0].message.content
+        gpt_raw = response.model_dump()
     except Exception as e:
         logger.error("❌ GPT API エラー: %s", str(e))
         return {"reply": f"エラーが発生しました: {str(e)}"}
@@ -267,6 +272,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     response_data = {"reply": reply}
     if request.debug:
         response_data["intent"] = intent
+        response_data["gpt_debug"] = gpt_raw
     if request.include_prompt:
         response_data["prompt"] = [system_prompt] + messages
     return response_data
@@ -378,11 +384,12 @@ def evaluate_liking(data: EvaluateLikingRequest, db: Session = Depends(get_db)):
     ).first()
     liking_raw = state.value if state else 0
 
-    score, reason, intent = evaluate_liking_character_view(
+    score, reason, intent, prompt_debug, gpt_raw = evaluate_liking_character_view(
         data.player_message,
         character,
         constructs,
         liking_raw,
+        return_raw=data.debug or data.include_prompt,
     )
 
     if state:
@@ -400,12 +407,20 @@ def evaluate_liking(data: EvaluateLikingRequest, db: Session = Depends(get_db)):
 
     db.commit()
 
-    return {
+    response_data = {
         "new_liking": state.value,
         "score": score,
         "reason": reason,
         "intent": intent,
     }
+    if data.debug:
+        response_data["gpt_debug"] = gpt_raw
+    if data.include_prompt:
+        response_data["prompt"] = [
+            {"role": "system", "content": prompt_debug},
+            {"role": "user", "content": data.player_message},
+        ]
+    return response_data
 
 
 # --------------------- Construct Endpoints ---------------------

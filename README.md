@@ -50,10 +50,12 @@ The API will be available on `http://localhost:8000` by default.
 | `PUT /characters/{name}`           | Update character details by name.          |
 | `GET /characters/`                 | List all characters.                       |
 | `DELETE /characters/{id}`          | Delete a character by ID.                  |
-| `POST /chat`                       | Send a message and receive a reply. Pass the `intent` from `/evaluate-liking` to avoid re-extraction. Use `include_prompt=true` to also return the OpenAI prompt. |
+
+| `POST /chat`                       | Send a message and receive a reply. Pass the `intent` from `/evaluate-liking` to avoid re-extraction. Use `include_prompt=true` to also return the OpenAI prompt. With `debug=true`, the response includes the extracted intent and raw GPT output. |
 | `POST /history/`                   | Store a chat message manually.             |
 | `GET /history/{user_id}/{character_id}` | Retrieve recent chat history.         |
-| `POST /evaluate-liking`            | Update the character's liking score and return the extracted intent. |
+| `POST /evaluate-liking`            | Update the character's liking score and return the extracted intent. Supports `debug=true` to include the raw GPT output and `include_prompt=true` to show the full prompt. |
+
 | `POST /constructs/`                | Create one or multiple value axis constructs. |
 | `GET /constructs/{user_id}/{character_id}` | List constructs for a user and character. |
 | `DELETE /constructs/{id}`          | Delete a construct by ID. |
