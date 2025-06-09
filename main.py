@@ -76,6 +76,54 @@ def extract_intent(user_message: str) -> str:
         logger.error("❌ GPT意図抽出エラー: %s", str(e))
         return ""
 
+
+def evaluate_liking_character_view(
+    player_message: str,
+    character: Character,
+    constructs: List[ConstructResponse],
+    liking_raw: int,
+) -> tuple[int, str, str]:
+    """Return (score, reason, intent) evaluating liking from the character view."""
+    intent = extract_intent(player_message)
+    liking_level = map_liking_to_level(liking_raw)
+    eval_instruction = (
+        "\nあなたは上記キャラクターとして、以下のプレイヤー発言がもたらす\n"
+        "好感度スコアを -3〜+3 で評価し、次の JSON だけ出力してください:\n"
+        '{"score": 整数, "reason": "簡潔な理由"}'
+    )
+    system_prompt = build_full_prompt(
+        character,
+        liking_level,
+        constructs,
+        intent,
+    ) + eval_instruction
+
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": player_message},
+            ],
+            temperature=0.3,
+            max_tokens=80,
+        )
+        raw = response.choices[0].message.content.strip()
+        match = re.search(r"{.*}", raw, re.DOTALL)
+        if match:
+            result = json.loads(match.group())
+            score = int(result.get("score", 0))
+            reason = result.get("reason", "")
+        else:
+            score = 0
+            reason = ""
+    except Exception as e:
+        logger.error("❌ Liking eval error: %s", str(e))
+        score = 0
+        reason = ""
+
+    return score, reason, intent
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -186,7 +234,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
     constructs = get_constructs(db, request.user_id, request.character_id)
 
-    intent = extract_intent(request.user_message)
+    intent = request.intent or extract_intent(request.user_message)
     full_system_prompt = build_full_prompt(character, liking_level, constructs, intent)
     system_prompt = {"role": "system", "content": full_system_prompt}
 
@@ -317,53 +365,25 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/evaluate-liking")
 def evaluate_liking(data: EvaluateLikingRequest, db: Session = Depends(get_db)):
-    system_prompt = """
+    character = db.query(Character).filter(Character.id == data.character_id).first()
+    if not character:
+        raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
 
-    あなたはゲームキャラクターとして、プレイヤーの発言に対する好感度を評価する役割を担っています。
-    以下のスケールに基づき、好感度を評価し、出力形式に厳密に従ってください。
-
-    出力スケール:
-    -3: 全く好感が持てない
-    -2: かなり好感が低い
-    -1: 少し好感が低い
-     0: 中立
-    +1: やや好感が持てる
-    +2: かなり好感が持てる
-    +3: 非常に好感が持てる
-
-
-    🔒 出力は以下の形式のJSONのみ。全角文字や解説、改行は不要です。
-    {
-      "score": 整数（-3～+3）, 
-      "reason": "理由（簡潔に）"
-    }
-    """
-
-    user_input = f'プレイヤーの発言: "{data.player_message}" を評価してください。'
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input}
-            ]
-        )
-        raw_output = response.choices[0].message.content.strip()
-        match = re.search(r'{.*}', raw_output, re.DOTALL)
-        if not match:
-            raise HTTPException(status_code=500, detail="GPTの応答からJSONを抽出できませんでした")
-        result = json.loads(match.group())
-        score = int(result["score"])
-        reason = result.get("reason", "")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"GPT呼び出しエラー: {str(e)}")
+    constructs = get_constructs(db, data.user_id, data.character_id)
 
     state = db.query(InternalState).filter_by(
         user_id=data.user_id,
         character_id=data.character_id,
-        param_name="liking"
+        param_name="liking",
     ).first()
+    liking_raw = state.value if state else 0
+
+    score, reason, intent = evaluate_liking_character_view(
+        data.player_message,
+        character,
+        constructs,
+        liking_raw,
+    )
 
     if state:
         state.value += score
@@ -374,7 +394,7 @@ def evaluate_liking(data: EvaluateLikingRequest, db: Session = Depends(get_db)):
             character_id=data.character_id,
             param_name="liking",
             value=score,
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
         db.add(state)
 
@@ -383,7 +403,8 @@ def evaluate_liking(data: EvaluateLikingRequest, db: Session = Depends(get_db)):
     return {
         "new_liking": state.value,
         "score": score,
-        "reason": reason
+        "reason": reason,
+        "intent": intent,
     }
 
 
