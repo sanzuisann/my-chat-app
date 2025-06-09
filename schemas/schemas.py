@@ -71,6 +71,7 @@ class ChatRequest(BaseModel):
     user_id: UUID
     character_id: UUID
     user_message: str
+    intent: Optional[str] = None
     debug: Optional[bool] = False
     include_prompt: Optional[bool] = False
 

@@ -234,7 +234,7 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
     constructs = get_constructs(db, request.user_id, request.character_id)
 
-    intent = extract_intent(request.user_message)
+    intent = request.intent or extract_intent(request.user_message)
     full_system_prompt = build_full_prompt(character, liking_level, constructs, intent)
     system_prompt = {"role": "system", "content": full_system_prompt}
 
