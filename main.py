@@ -88,11 +88,11 @@ def map_liking_to_level(liking: int) -> int:
     """Convert raw liking value to a discrete level."""
     if liking <= -5:
         return 0
-    elif liking <= -1:
+    elif liking <= -2:
         return 1
     elif liking <= 1:
         return 2
-    elif liking <= 5:
+    elif liking <= 4:
         return 3
     else:
         return 4
