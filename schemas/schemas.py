@@ -94,13 +94,6 @@ class ChatHistoryResponse(BaseModel):
 class UserCreate(BaseModel):
     username: str
 
-# ✅ 信頼度評価用リクエスト
-class EvaluateLikingRequest(BaseModel):
-    user_id: UUID
-    character_id: UUID
-    player_message: str
-
-# 👍 好意度評価用リクエスト
 class EvaluateLikingRequest(BaseModel):
     user_id: UUID
     character_id: UUID
