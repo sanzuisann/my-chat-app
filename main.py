@@ -29,7 +29,7 @@ from schemas.schemas import (
     ChatHistoryResponse,
     ChatRequest,
     UserCreate,
-    EvaluateTrustRequest,
+    EvaluateLikingRequest,
     ConstructCreate,
     ConstructResponse,
 )
@@ -84,14 +84,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def build_full_prompt(character, trust_level: int, constructs=None, intent: Optional[str] = None) -> str:
+def map_liking_to_level(liking: int) -> int:
+    """Convert raw liking value to a discrete level."""
+    if liking <= -5:
+        return 0
+    elif liking <= -1:
+        return 1
+    elif liking <= 1:
+        return 2
+    elif liking <= 5:
+        return 3
+    else:
+        return 4
+
+def build_full_prompt(character, liking_level: int, constructs=None, intent: Optional[str] = None) -> str:
     def get_prompt_by_level(level: int) -> str:
         prompt_map = {
-            0: "相手を全く信用していないように、冷たく、距離を取って応答してください。",
-            1: "相手に警戒しており、慎重に言葉を選んでください。",
-            2: "",
-            3: "少し心を許し、優しく応答してください。",
-            4: "非常に親しい相手として、温かく、積極的に応答してください。"
+            0: "相手を大嫌いで、極力関わりたくない態度で応答してください。",
+            1: "相手をあまり好ましく思っておらず、ぶっきらぼうに応答してください。",
+            2: "相手への感情は特になく、淡々と応答してください。",
+            3: "相手に好感を抱き、親しげに応答してください。",
+            4: "相手が大好きで、喜んで親密に応答してください。"
         }
         return prompt_map.get(level, "")
 
@@ -100,7 +113,7 @@ def build_full_prompt(character, trust_level: int, constructs=None, intent: Opti
         f"ユーザー: {ex['user']}\nキャラ: {ex['assistant']}"
         for ex in json.loads(character.examples)
     ) if character.examples else "なし"
-    trust_text = get_prompt_by_level(trust_level)
+    liking_text = get_prompt_by_level(liking_level)
     intent_text = f"\n【ユーザーの意図】\n{intent}" if intent else ""
     def format_construct(c):
         axis = json.loads(c.axis) if isinstance(c.axis, str) else c.axis
@@ -140,7 +153,7 @@ def build_full_prompt(character, trust_level: int, constructs=None, intent: Opti
 【価値軸】
 {constructs_text}
 
-{trust_text}{intent_text}
+{liking_text}{intent_text}
 """
 
 @app.get("/reset-db")
@@ -166,15 +179,15 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
     state = db.query(InternalState).filter_by(
         user_id=request.user_id,
         character_id=request.character_id,
-        param_name="trust"
+        param_name="liking"
     ).first()
-    trust = state.value if state else 0
-    trust_level = int(trust)
+    liking = state.value if state else 0
+    liking_level = map_liking_to_level(liking)
 
     constructs = get_constructs(db, request.user_id, request.character_id)
 
     intent = extract_intent(request.user_message)
-    full_system_prompt = build_full_prompt(character, trust_level, constructs, intent)
+    full_system_prompt = build_full_prompt(character, liking_level, constructs, intent)
     system_prompt = {"role": "system", "content": full_system_prompt}
 
     try:
@@ -302,20 +315,20 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return {"id": new_user.id, "username": new_user.username}
 
-@app.post("/evaluate-trust")
-def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
+@app.post("/evaluate-liking")
+def evaluate_liking(data: EvaluateLikingRequest, db: Session = Depends(get_db)):
     system_prompt = """
-    あなたはゲームキャラクターとして、プレイヤーの発言に対する信頼度を評価する役割を担っています。
-    以下のスケールに基づき、信頼度を評価し、出力形式に厳密に従ってください。
+    あなたはゲームキャラクターとして、プレイヤーの発言に対する好意度を評価する役割を担っています。
+    以下のスケールに基づき、好意度を評価し、出力形式に厳密に従ってください。
 
     出力スケール:
-    -3: 全く信頼できない
-    -2: かなり疑わしい
-    -1: 少し怪しい
+    -3: 大嫌い
+    -2: 嫌い
+    -1: あまり好きではない
      0: 中立
-    +1: やや信頼できる
-    +2: かなり信頼できる
-    +3: 非常に信頼できる
+    +1: 好き
+    +2: かなり好き
+    +3: 大好き
 
     🔒 出力は以下の形式のJSONのみ。全角文字や解説、改行は不要です。
     {
@@ -347,7 +360,7 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     state = db.query(InternalState).filter_by(
         user_id=data.user_id,
         character_id=data.character_id,
-        param_name="trust"
+        param_name="liking"
     ).first()
 
     if state:
@@ -357,7 +370,7 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
         state = InternalState(
             user_id=data.user_id,
             character_id=data.character_id,
-            param_name="trust",
+            param_name="liking",
             value=score,
             updated_at=datetime.utcnow()
         )
@@ -366,7 +379,7 @@ def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
     db.commit()
 
     return {
-        "new_trust": state.value,
+        "new_liking": state.value,
         "score": score,
         "reason": reason
     }
