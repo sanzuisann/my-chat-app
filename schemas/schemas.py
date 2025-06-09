@@ -95,7 +95,7 @@ class UserCreate(BaseModel):
     username: str
 
 # ✅ 信頼度評価用リクエスト
-class EvaluateTrustRequest(BaseModel):
+class EvaluateLikingRequest(BaseModel):
     user_id: UUID
     character_id: UUID
     player_message: str

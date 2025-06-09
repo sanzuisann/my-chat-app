@@ -29,7 +29,7 @@ from schemas.schemas import (
     ChatHistoryResponse,
     ChatRequest,
     UserCreate,
-    EvaluateTrustRequest,
+    EvaluateLikingRequest,
     ConstructCreate,
     ConstructResponse,
 )
@@ -303,7 +303,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     return {"id": new_user.id, "username": new_user.username}
 
 @app.post("/evaluate-trust")
-def evaluate_trust(data: EvaluateTrustRequest, db: Session = Depends(get_db)):
+def evaluate_trust(data: EvaluateLikingRequest, db: Session = Depends(get_db)):
     system_prompt = """
     あなたはゲームキャラクターとして、プレイヤーの発言に対する信頼度を評価する役割を担っています。
     以下のスケールに基づき、信頼度を評価し、出力形式に厳密に従ってください。
