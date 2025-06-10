@@ -8,7 +8,11 @@ This repository contains a small chat application split into two parts:
 ## Backend
 
 ### Environment variables
-Create a `.env` file with at least the following entries:
+Copy `.env.example` to `.env` and fill in your values:
+
+```bash
+cp .env.example .env
+```
 
 ```
 DATABASE_URL=<postgres connection url>
