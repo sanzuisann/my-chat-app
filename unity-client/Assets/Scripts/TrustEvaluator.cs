@@ -90,7 +90,7 @@ public class TrustEvaluator : MonoBehaviour
 
             if (chatManager != null)
             {
-                chatManager.SetTrust(response.trust_score); // ← ChatManagerにスコアを渡す
+                chatManager.SetTrust(response.new_liking); // ← ChatManagerにスコアを渡す
             }
             else
             {
@@ -108,5 +108,15 @@ public class TrustEvaluator : MonoBehaviour
 [System.Serializable]
 public class TrustResponse
 {
-    public int trust_score;
+    // API から返される好感度の現在値
+    public int new_liking;
+
+    // この発言で変化したスコア（-3〜+3）
+    public int score;
+
+    // GPT が返した簡潔な理由
+    public string reason;
+
+    // 抽出された会話の意図
+    public string intent;
 }
