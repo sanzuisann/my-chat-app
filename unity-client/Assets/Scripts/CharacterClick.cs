@@ -14,7 +14,7 @@ public class CharacterClick : MonoBehaviour
 
     IEnumerator FetchCharacterNameFromList()
     {
-        string url = "https://my-chat-app-1-3wr3.onrender.com/characters/";
+        string url = ApiConfig.BaseUrl + "/characters/";
 
         using (UnityWebRequest request = UnityWebRequest.Get(url))
         {
