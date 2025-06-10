@@ -18,6 +18,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+env_path = Path(".") / ".env"
+load_dotenv(dotenv_path=env_path)
+
 # ✅ 自作モジュール
 from backend.models.models import Base, Character, ChatHistory, User, InternalState
 from backend.db.database import engine
@@ -45,9 +48,6 @@ from backend.crud.crud import (
 from backend.dependencies.dependencies import get_db
 
 app = FastAPI()
-
-env_path = Path('.') / '.env'
-load_dotenv(dotenv_path=env_path)
 
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
