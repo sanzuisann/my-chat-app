@@ -44,8 +44,12 @@ The API will be available at `http://localhost:8000` by default.
 ## Unity client
 
 Open the `unity-client/` folder with Unity Hub or the Unity editor. The C# scripts
-are stored in `Assets/Scripts/`. If you need to use a different API endpoint,
-edit the URL value in the networking script (for example `ChatManager.cs`).
+are stored in `Assets/Scripts/`.
+
+The API base URL is controlled by `ApiConfig.cs`. By default it uses
+`http://localhost:8000`, but you can override this by setting the PlayerPrefs
+key `API_BASE_URL` (or an environment variable of the same name) before
+running the client.
 
 Build or run the scene from the editor to debug the client.
 
