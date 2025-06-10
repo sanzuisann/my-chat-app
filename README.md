@@ -1,66 +1,67 @@
 # My Chat App
 
-This FastAPI application exposes a small chat API backed by a PostgreSQL database. The app uses OpenAI's API for language generation.
+This repository contains a small chat application split into two parts:
 
-## Environment variables
+* **backend/** – a FastAPI service backed by PostgreSQL and OpenAI.
+* **unity-client/** – a Unity project that talks to the API.
 
-Create a `.env` file or set the following variables in your environment:
+## Backend
 
-- `DATABASE_URL` – connection string for your PostgreSQL database (for example: `postgresql://user:password@host:5432/dbname`).
-- `OPENAI_API_KEY` – your OpenAI API key.
+### Environment variables
+Create a `.env` file with at least the following entries:
 
-Both variables are required for the app to start.
+```
+DATABASE_URL=<postgres connection url>
+OPENAI_API_KEY=<your OpenAI key>
+```
 
-## Installation
+### Installation
 
-Install the dependencies using `pip`:
+Install the Python requirements:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Initialize the database
+### Initialize the database
 
-Create the database tables once before running the API:
-
-```bash
-python create_tables.py
-```
-
-This uses `DATABASE_URL` to connect and create all tables defined in `models`.
-
-## Running the server
-
-Start the FastAPI server with uvicorn:
+Run once to create all tables:
 
 ```bash
-uvicorn main:app --reload
+python -m backend.create_tables
 ```
 
-The API will be available on `http://localhost:8000` by default.
+### Running the API server
 
-## API endpoints (summary)
+Start the server from the repository root:
 
-| Method & Path                       | Description                                |
-| ---------------------------------- | ------------------------------------------ |
-| `GET /`                            | Health check returning a simple message.   |
-| `GET /reset-db`                    | Drop and recreate all tables.              |
-| `POST /users/`                     | Create a new user.                         |
-| `POST /characters/`                | Create a character.                        |
-| `PUT /characters/{name}`           | Update character details by name.          |
-| `GET /characters/`                 | List all characters.                       |
-| `DELETE /characters/{id}`          | Delete a character by ID.                  |
+```bash
+uvicorn backend.main:app --reload
+```
 
-| `POST /chat`                       | Send a message and receive a reply. Pass the `intent` from `/evaluate-liking` to avoid re-extraction. Use `include_prompt=true` to also return the OpenAI prompt. With `debug=true`, the response includes the extracted intent and raw GPT output. |
-| `POST /history/`                   | Store a chat message manually.             |
-| `GET /history/{user_id}/{character_id}` | Retrieve recent chat history.         |
-| `POST /evaluate-liking`            | Update the character's liking score and return the extracted intent. Supports `debug=true` to include the raw GPT output and `include_prompt=true` to show the full prompt. |
+The API will be available at `http://localhost:8000` by default.
 
-| `POST /constructs/`                | Create one or multiple value axis constructs. |
-| `GET /constructs/{user_id}/{character_id}` | List constructs for a user and character. |
-| `DELETE /constructs/{id}`          | Delete a construct by ID. |
-| `POST /constructs/import`          | Import constructs from JSONL. |
-| `GET /constructs/export/{user_id}/{character_id}` | Export constructs as JSONL. |
+## Unity client
 
-See the `schemas` module for request and response shapes for each endpoint.
+Open the `unity-client/` folder with Unity Hub or the Unity editor. The C# scripts
+are stored in `Assets/Scripts/`. If you need to use a different API endpoint,
+edit the URL value in the networking script (for example `ChatManager.cs`).
 
+Build or run the scene from the editor to debug the client.
+
+## Layout
+
+```
+backend/            FastAPI application
+  main.py           API entry point
+  create_tables.py  Utility to create tables
+  crud/             Database operations
+  db/               SQLAlchemy setup
+  dependencies/     Dependency helpers
+  models/           ORM models
+  schemas/          Pydantic schemas
+  data/             Optional JSON data files
+unity-client/       Unity project
+  Assets/
+    Scripts/        Client scripts
+```

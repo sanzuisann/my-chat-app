@@ -1,3 +1,13 @@
 __pycache__/
 *.pyc
 .env
+# Unity
+Library/
+Temp/
+Logs/
+obj/
+*.csproj
+*.unityproj
+*.sln
+*.user
+Build/

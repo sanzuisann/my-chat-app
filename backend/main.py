@@ -19,9 +19,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # ✅ 自作モジュール
-from models.models import Base, Character, ChatHistory, User, InternalState
-from db.database import engine
-from schemas.schemas import (
+from backend.models.models import Base, Character, ChatHistory, User, InternalState
+from backend.db.database import engine
+from backend.schemas.schemas import (
     CharacterCreate,
     CharacterResponse,
     CharacterUpdate,
@@ -33,7 +33,7 @@ from schemas.schemas import (
     ConstructCreate,
     ConstructResponse,
 )
-from crud.crud import (
+from backend.crud.crud import (
     get_all_characters,
     create_character,
     get_character_by_name,
@@ -42,7 +42,7 @@ from crud.crud import (
     get_constructs,
     delete_construct,
 )
-from dependencies.dependencies import get_db
+from backend.dependencies.dependencies import get_db
 
 app = FastAPI()
 
