@@ -356,7 +356,7 @@ def delete_character_route(id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="キャラクターが見つかりません")
     db.delete(character)
     db.commit()
-    return {"message": f"キャラクター┈ID: {id}┉を削除しました"}
+    return {"message": f"キャラクターID: {id} を削除しました"}
 
 @app.post("/users/")
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
