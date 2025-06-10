@@ -7,7 +7,7 @@ using System.Collections.Generic;
 public class ChatHistoryLoader : MonoBehaviour
 {
     [Header("API設定")]
-    public string historyUrl = "https://my-chat-app-1-3wr3.onrender.com/history/{0}/{1}";
+    public string historyUrl = ApiConfig.BaseUrl + "/history/{0}/{1}";
     public string userId = "1f494426-588c-4a74-a5a0-6d9d1dafebec";
     public string characterId = "854d5e61-9d5c-45c6-b3b6-019acfba777e";
 

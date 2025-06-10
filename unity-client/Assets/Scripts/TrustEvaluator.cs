@@ -9,7 +9,7 @@ public class TrustEvaluator : MonoBehaviour
     public InputField inputField;  // ユーザー入力欄（ChatManagerのInputFieldをアサイン）
 
     [Header("API設定")]
-    public string evaluateTrustUrl = "https://my-chat-app-1-3wr3.onrender.com/evaluate-trust";
+    public string evaluateTrustUrl = ApiConfig.BaseUrl + "/evaluate-trust";
 
     [Header("ID設定（UUID形式）")]
     public string userId = "1f494426-588c-4a74-a5a0-6d9d1dafebec";
