@@ -9,11 +9,30 @@ public class CharacterNameDisplay : MonoBehaviour
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Debug.LogWarning("Duplicate CharacterNameDisplay detected, destroying this instance.");
+            Destroy(this.gameObject);
+            return;
+        }
         Instance = this;
+    }
+
+    void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 
     public void ShowName(string newName)
     {
+        if (nameText == null)
+        {
+            Debug.LogWarning("nameText is not assigned.");
+            return;
+        }
         nameText.text = newName;
     }
 }
