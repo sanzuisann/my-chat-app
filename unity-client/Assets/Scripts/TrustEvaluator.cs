@@ -19,6 +19,14 @@ public class TrustEvaluator : MonoBehaviour
     [Header("連携スクリプト")]
     public ChatManager chatManager;  // ← Unityでアサイン
 
+    [System.Serializable]
+    private class EvaluateTrustPayload
+    {
+        public string user_id;
+        public string character_id;
+        public string player_message;
+    }
+
     /// <summary>
     /// ユーザーが入力欄に書いた内容を評価（ボタン連携用）
     /// </summary>
@@ -54,7 +62,14 @@ public class TrustEvaluator : MonoBehaviour
     /// </summary>
     IEnumerator PostEvaluateTrust(string userMessage)
     {
-        string json = $"{{\"user_id\":\"{userId}\",\"character_id\":\"{characterId}\",\"player_message\":\"{userMessage}\"}}";
+        var payload = new EvaluateTrustPayload
+        {
+            user_id = userId,
+            character_id = characterId,
+            player_message = userMessage
+        };
+
+        string json = JsonUtility.ToJson(payload);
 
         Debug.Log("📤 送信するJSON: " + json);
 

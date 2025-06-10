@@ -22,6 +22,14 @@ public class ChatManager : MonoBehaviour
 
     private int currentTrust = 0;
 
+    [System.Serializable]
+    private class ChatRequestPayload
+    {
+        public string user_id;
+        public string character_id;
+        public string user_message;
+    }
+
     void Start()
     {
         UpdateTrustDisplay(); // 起動時に初期表示
@@ -40,7 +48,14 @@ public class ChatManager : MonoBehaviour
     // GPTに送信する処理（POST）
     IEnumerator SendMessageToAPI(string message)
     {
-        string jsonData = $"{{\"user_id\":\"{userId}\",\"character_id\":\"{characterId}\",\"user_message\":\"{message}\"}}";
+        var payload = new ChatRequestPayload
+        {
+            user_id = userId,
+            character_id = characterId,
+            user_message = message
+        };
+
+        string jsonData = JsonUtility.ToJson(payload);
 
         Debug.Log("📤 Chat送信JSON: " + jsonData);
 
