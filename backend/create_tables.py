@@ -1,5 +1,5 @@
-from db.database import engine
-from models.models import Base
+from backend.db.database import engine
+from backend.models.models import Base
 
 print("🔧 テーブルを作成中...")
 Base.metadata.create_all(bind=engine)

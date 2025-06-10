@@ -1,5 +1,5 @@
 # dependencies.py（新規）
-from db.database import SessionLocal
+from backend.db.database import SessionLocal
 from fastapi import Depends
 from sqlalchemy.orm import Session
 

@@ -1,8 +1,8 @@
 import json
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from models.models import Character, Construct
-from schemas.schemas import CharacterCreate, ConstructCreate
+from backend.models.models import Character, Construct
+from backend.schemas.schemas import CharacterCreate, ConstructCreate
 
 # 🔸 キャラ新規作成
 def create_character(db: Session, character: CharacterCreate) -> Character:
