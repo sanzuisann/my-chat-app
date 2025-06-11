@@ -35,6 +35,27 @@ Run once to create all tables:
 python -m backend.create_tables
 ```
 
+### Creating characters
+
+Add at least one character so the client has something to talk to. Characters
+are created by POSTing JSON to `/characters/`:
+
+```bash
+curl -X POST http://localhost:8000/characters/ \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Alice", "personality": "calm", "system_prompt": "You are Alice."}'
+```
+
+Existing characters and their IDs can be listed via:
+
+```bash
+curl http://localhost:8000/characters/
+```
+
+These `id` fields are UUIDs. Unity scripts such as `ChatManager`,
+`TrustEvaluator` and others reference them through their `characterId` fields, so
+update the values in your Unity scene after creating characters.
+
 ### Running the API server
 
 Start the server from the repository root:
