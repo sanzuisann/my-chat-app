@@ -90,8 +90,9 @@ public class ChatManager : MonoBehaviour
             }
             else
             {
-                responseText.text = $"エラー: HTTP/{request.responseCode}";
-                Debug.LogError("❌ Chat送信失敗: " + request.error);
+                string serverMessage = request.downloadHandler.text;
+                responseText.text = $"エラー: HTTP/{request.responseCode}\n{serverMessage}";
+                Debug.LogError($"❌ Chat送信失敗: {request.error}\n{serverMessage}");
             }
         }
     }
