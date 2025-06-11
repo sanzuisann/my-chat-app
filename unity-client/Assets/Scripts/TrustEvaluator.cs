@@ -10,7 +10,7 @@ public class TrustEvaluator : MonoBehaviour
 
     [Header("API設定")]
     // 信頼度ではなく好感度を評価する "evaluate-liking" エンドポイント
-    public string evaluateTrustUrl = ApiConfig.BaseUrl + "/evaluate-liking";
+    public string evaluateTrustUrl;
 
     [Header("ID設定（UUID形式）")]
     public string userId = "1f494426-588c-4a74-a5a0-6d9d1dafebec";
@@ -18,6 +18,11 @@ public class TrustEvaluator : MonoBehaviour
 
     [Header("連携スクリプト")]
     public ChatManager chatManager;  // ← Unityでアサイン
+
+    void Awake()
+    {
+        evaluateTrustUrl = ApiConfig.BaseUrl + "/evaluate-liking";
+    }
 
     [System.Serializable]
     private class EvaluateTrustPayload

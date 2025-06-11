@@ -11,7 +11,7 @@ public class ChatManager : MonoBehaviour
     public Text trustText;            // 信頼度スコア表示欄（パネル上に配置）
 
     [Header("API設定")]
-    public string apiUrl = ApiConfig.BaseUrl + "/chat";
+    public string apiUrl;
 
     [Header("ID設定（UUID形式）")]
     public string userId = "1f494426-588c-4a74-a5a0-6d9d1dafebec";
@@ -28,6 +28,11 @@ public class ChatManager : MonoBehaviour
         public string user_id;
         public string character_id;
         public string user_message;
+    }
+
+    void Awake()
+    {
+        apiUrl = ApiConfig.BaseUrl + "/chat";
     }
 
     void Start()
